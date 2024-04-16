@@ -7,10 +7,8 @@
 #  assumindo que o restaurante opera 300 dias por ano.
 
 #dados
-install.packges("triangle")
-library(triangle)
-gastoClientes <- rtriangle(150, 500, 250)
-clientesDiarios <- rtriangle(40,120,60)
+gastoClientes <- c(150, 500, 250)
+clientesDiarios <- c(40,120,60)
 margemLucro <- c(0.15,0.30,0.20)
 dias <- 300
 
