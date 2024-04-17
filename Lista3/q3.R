@@ -6,17 +6,34 @@
 #  Calcule o risco do do lucro total do restaurante durante o primeiro ano de opera ̧c ̃ao,
 #  assumindo que o restaurante opera 300 dias por ano.
 
-#dados
-gastoClientes <- c(150, 500, 250)
-clientesDiarios <- c(40,120,60)
-margemLucro <- c(0.15,0.30,0.20)
-dias <- 300
+# Definindo os dados
+gastoCliente <- c(150, 500, 250)
+clientesDiarios <- c(40, 120, 60)
+margemLucro <- c(0.15, 0.30, 0.22)
+operacaoAno <- 300
 
-#calculo do faturamento e lucro
-faturamentoMedioDiario <- mean(gastoClientes)*mean(clientesDiarios)
-lucroAnualDiario <-mean(faturamentoMedioDiario*margemLucro)
-lucroMedioAnual <- lucroAnualDiario*dias
+# Função para calcular o lucro diário
+calcularLucroDiario <- function() {
+  gastoAleatorio <- sample(gastoCliente, 1)
+  clientesAleatorios <- sample(clientesDiarios, 1)
+  margemAleatoria <- sample(margemLucro, 1)
   
-desvioPadraoMargem <- sd(margemLucro)
+  faturamentoDiario <- gastoAleatorio * clientesAleatorios
+  lucroDiario <- faturamentoDiario * margemAleatoria
+  
+  return(lucroDiario)
+}
 
-print(paste("O risco do lucro total do restaurante durante o primeiro ano de operacao e de aproximadamente:", desvioPadraoAnual))
+# Realizando calculo do lucro anual
+lucroAnual <- replicate(operacaoAno, calcularLucroDiario())
+
+# Calculando a média e o desvio padrão dos lucros diários
+mediaLucrosDiarios <- mean(lucroAnual)
+desvioPadraoLucrosDiarios <- sd(lucroAnual)
+
+# Calculando o risco do lucro total
+riscoLucroTotal <- desvioPadraoLucrosDiarios * sqrt(operacaoAno)
+
+# Exibindo o resultado
+cat("O risco do lucro total do restaurante durante o primeiro ano de operação é de aproximadamente:", riscoLucroTotal, "\n")
+
