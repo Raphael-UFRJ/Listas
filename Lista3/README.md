@@ -26,6 +26,19 @@ q1 <- function(n) {
     custo_placa * 562
   })
   
+  # Calculando métricas estatísticas
+  media_custo <- mean(custo_total)
+  desvio_padrao_custo <- sd(custo_total)
+  primeiro_quartil <- quantile(custo_total, 0.25)
+  terceiro_quartil <- quantile(custo_total, 0.75)
+  
+  # Exibindo métricas estatísticas
+  cat("Média do Custo Total de Mão-de-Obra:", media_custo, "\n")
+  cat("Desvio Padrão do Custo Total de Mão-de-Obra:", desvio_padrao_custo, "\n")
+  cat("Primeiro Quartil do Custo Total de Mão-de-Obra:", primeiro_quartil, "\n")
+  cat("Terceiro Quartil do Custo Total de Mão-de-Obra:", terceiro_quartil, "\n")
+  
+  # Plotando o histograma do custo total de mão-de-obra
   hist(custo_total, breaks = "FD", xlab = "Custo Total de Mão-de-Obra", main = "Histograma do Custo Total de Mão-de-Obra")
 }
 
@@ -45,16 +58,40 @@ q2 <- function(n) {
   # Custo variável por litro de gasolina
   custo_gasolina <- c(5.70, 7.20, 6.00)
   
-  # Amostragem Monte Carlo
-  custo_combustivel <- replicate(n, {
+  # Inicializando uma matriz para armazenar os resultados de cada iteração
+  resultados <- matrix(NA, nrow = n, ncol = 3)
+  
+  # Amostragem Monte Carlo e armazenamento dos resultados
+  for (i in 1:n) {
     carros <- sample(carros_ativos, 1)
     consumo <- sample(consumo_gasolina, 1)
     custo_litro <- sample(custo_gasolina, 1)
     custo_combustivel_dia <- carros * consumo * custo_litro
-    custo_combustivel_dia
-  })
+    resultados[i, ] <- c(carros, consumo, custo_litro)
+  }
   
-  hist(custo_combustivel, breaks = "FD", xlab = "Custo Diário de Combustível", main = "Histograma do Custo Diário de Combustível")
+  # Convertendo a matriz de resultados em um data frame
+  resultados_df <- as.data.frame(resultados)
+  colnames(resultados_df) <- c("Carros Ativos", "Consumo por Carro (litros)", "Custo por Litro (R$)")
+  
+  # Exibindo a tabela
+  cat("Tabela de Resultados:\n")
+  print(resultados_df)
+  
+  # Calculando métricas estatísticas
+  media_custo_combustivel <- mean(resultados[, 1] * resultados[, 2] * resultados[, 3])
+  desvio_padrao_custo_combustivel <- sd(resultados[, 1] * resultados[, 2] * resultados[, 3])
+  primeiro_quartil_combustivel <- quantile(resultados[, 1] * resultados[, 2] * resultados[, 3], 0.25)
+  terceiro_quartil_combustivel <- quantile(resultados[, 1] * resultados[, 2] * resultados[, 3], 0.75)
+  
+  # Exibindo métricas estatísticas
+  cat("\nMédia do Custo Diário de Combustível:", media_custo_combustivel, "\n")
+  cat("Desvio Padrão do Custo Diário de Combustível:", desvio_padrao_custo_combustivel, "\n")
+  cat("Primeiro Quartil do Custo Diário de Combustível:", primeiro_quartil_combustivel, "\n")
+  cat("Terceiro Quartil do Custo Diário de Combustível:", terceiro_quartil_combustivel, "\n")
+  
+  # Plotando o histograma do custo diário de combustível
+  hist(resultados[, 1] * resultados[, 2] * resultados[, 3], breaks = "FD", xlab = "Custo Diário de Combustível", main = "Histograma do Custo Diário de Combustível")
 }
 
 # Chamada da função q2 com 10000 iterações
