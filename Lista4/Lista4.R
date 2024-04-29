@@ -1,65 +1,92 @@
-# Instalar e carregar os pacotes necess??rios
-install.packages(c("igraph", "flextable"))
+# Tabela de dados corrigida
+projeto <- data.frame(
+  Atividade = 1:19,
+  Descrição = c("Remove refractory material", "Repair inner air casing", "Repair outer air casing",
+                "Repair under boiler", "Rebrick", "Chemically clean", "Remove air registers",
+                "Install plastic refractory", "Repair air register assemblies", "Install air registers",
+                "Rag for chemical cleaning", "Remove drum internals", "Repair drum internals",
+                "Install drum internals", "Initial hydrostatic test", "Exploratory block",
+                "Retube and poll", "Preliminary hydrostatic test", "Final hydrostatic test"),
+  Pred = c("7", "1", "2", "-", "2", "11", "-", "10", "7", "5", "15", "15", "12", "13", "-", "1", "16", "6", "14"),
+  DMin = c(4, 1, 1, 14, 5, 4, 0, 0.5, 10, 0.5, 5, 0.5, 5, 1, 1, 7, 4, 0, 0),
+  DMp = c(5, 5, 5, 27, 6, 6, 0.5, 0.5, 10, 1, 6, 0.5, 12, 1.5, 2, 8, 6, 0, 0),
+  DMax = c(10, 14, 10, 35, 14, 8, 3, 1, 20, 3, 7, 3, 18, 3, 5, 18, 12, 14, 3)
+)
+
+# Carregar pacote igraph
 library(igraph)
-library(flextable)
 
-# Fun????o para criar o grafo de preced??ncia
-criar_grafo_precedencia <- function(dados) {
-  # Criar grafo de preced??ncia
-  grafo <- graph_from_data_frame(dados[, c("Pred","DMin", "Atividade")], directed = TRUE)
+# Função para desenhar o grafo de precedência do projeto
+q1 <- function() {
+  # Criar o grafo
+  graf <- graph_from_data_frame(projeto[, c("Pred", "Atividade")], directed = TRUE)
   
-  # Plotar o grafo
-  plot(grafo, main = "Grafo de Preced??ncia do Projeto", vertex.label = paste(dados$Atividade, dados$Descri????o),
-       edge.label = dados$Descri????o)
+  # Adicionar nó inicial "I" e conectar às atividades iniciais com predecessores "-"
+  graf <- add_vertices(graf, 1, name = "I")
+  atividades_iniciais <- projeto$Atividade[projeto$Pred == "-"]
+  for (atividade in atividades_iniciais) {
+    graf <- add_edges(graf, c("I", as.character(atividade)))
+  }
   
-  return(grafo)
+  # Remover os nós iniciais redundantes
+  graf <- delete_vertices(graf, which(V(graf)$name == "-"))
+  
+  # Plotar o grafo com ajustes para evitar sobreposição de nós
+  plot(graf, main = "Grafo de Precedência do Projeto", vertex.label = V(graf)$name, vertex.label.cex = 0.8,
+       layout = layout_with_dh, vertex.size = 15, edge.arrow.size = 0.5, margin = 0.1)
+  # o layout layout_with_dh que posiciona os nós de forma mais espaçada horizontalmente. 
+  # Também mudei o tamanho dos nós (vertex.size) e o tamanho das setas das arestas (edge.arrow.size) para melhorar a visualização.
+  # E defini uma margem (margin) para deixar um espaço em branco ao redor do grafo.
 }
 
-# Fun????o para identificar as atividades iniciais e finais
-identificar_atividades_iniciais_finais <- function(grafo) {
-  # Atividades iniciais (sem predecessores)
-  atividades_iniciais <- V(grafo)[degree(grafo, mode = "in") == 0]
+
+# Função para identificar as atividades iniciais e finais
+q2 <- function() {
+  # Identificar atividades iniciais
+  atividades_iniciais <- projeto$Atividade[projeto$Pred == "-"]
   
-  # Atividades finais (sem sucessores)
-  atividades_finais <- V(grafo)[degree(grafo, mode = "out") == 0 & degree(grafo, mode = "in") != 0]
+  # Identificar atividades finais
+  atividades_finais <- projeto$Atividade[!(projeto$Atividade %in% projeto$Pred)]
   
-  return(list(atividades_iniciais = atividades_iniciais, atividades_finais = atividades_finais))
+  cat("Atividades Iniciais:", atividades_iniciais, "\n")
+  cat("Atividades Finais:", atividades_finais, "\n")
 }
 
-# Carregar os dados
-dados <- read.csv(text = "Atividade,Descri????o,Pred,DMin,DMp,DMax
-1,Remove refractory material,7.15,4,5,10
-2,Repair inner air casing,1,1,5,14
-3,Repair outer air casing,2,1,5,10
-4,Repair under boiler,,14,27,35
-5,Rebrick,2.17,5,6,14
-6,Chemically ckean,11.17,4,6,8
-7,Remove air registers,,0,0.5,3
-8,Install plastic refractory,10.19,0.5,0.5,1
-9,Repair air register assemblies,7,10,10,20
-10,Install air registers,5.9,0.5,1,3
-11,Rag for chemical cleaning,15,5,6,7
-12,Remove drum internals,15,0.5,0.5,3
-13,Repair drum internals,12,5,12,18
-14,Install drum internals,13.18,1,1.5,3
-15,Initial hydrostatic test,,1,2,5
-16,Exploratory block,1.12,7,8,18
-17,Retube and poll,16,4,6,12
-18,Preliminary hydrostatic test,6,0,0,14
-19,final hydrostatic test,14,0,0,3")
+# Chamadas de função para testar cada parte do exercício
+q1()
+q2()
 
-# Passo 1: Criar o grafo de preced??ncia
-grafo_precedencia <- criar_grafo_precedencia(dados)
 
-# Passo 2: Identificar as atividades iniciais e finais
-atividades <- identificar_atividades_iniciais_finais(grafo_precedencia)
-
-# Imprimir as atividades iniciais e finais
-cat("Atividades iniciais:\n")
-for (v in atividades$atividades_iniciais) {
-  cat(dados$Atividade[v], "\n")
+# Função para gerar um novo grafo de precedência com uma atividade inicial e uma final
+q3 <- function() {
+  
 }
-cat("\nAtividades finais:\n")
-for (v in atividades$atividades_finais) {
-  cat(dados$Atividade[v],"\n")
+
+
+# Função para calcular aproximações empíricas para o risco de prazo da obra
+q4 <- function() {
 }
+
+# Função para estimar as probabilidades das atividades pertencerem ao caminho crítico
+q5 <- function() {
+}
+
+# Função para calcular a distribuição de probabilidade da data de início mais cedo para todas as atividades
+q6 <- function() {
+}
+
+# Função para gerar um cronograma com probabilidade de 85% de ser cumprido
+q7 <- function() {
+}
+
+# Função para desenhar um diagrama de Gantt para o agendamento
+q8 <- function() {
+}
+
+# Chamadas de função para testar cada parte do exercício
+q3()
+q4()
+q5()
+q6()
+q7()
+q8()
