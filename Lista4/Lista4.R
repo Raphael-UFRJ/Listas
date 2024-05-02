@@ -71,7 +71,7 @@ q3 <- function(projeto) {
     preds <- unlist(strsplit(as.character(projeto$Pred[i]), ","))
     for (pred in preds) {
       if (pred != "-") {
-        elos <- rbind(elos, c(as.numeric(pred), projeto$Atividade[i]))
+        elos <- rbind(elos, c(as.character(projeto$Atividade[as.numeric(pred)]), as.character(projeto$Atividade[i])))
       }
     }
   }
@@ -79,17 +79,18 @@ q3 <- function(projeto) {
   g <- graph_from_edgelist(as.matrix(elos), directed = TRUE)
   
   # Calcular todos os caminhos mais longos
-  caminhos_mais_longos <- get.all.shortest.paths(g, from = 1, to = nrow(projeto), mode = "out")
+  caminhos_mais_longos <- get.all.shortest.paths(g, from = "7", to = as.character(nrow(projeto)), mode = "out")
   
   # Encontrar o caminho mais longo
   caminho_mais_longo <- caminhos_mais_longos$vpath[[which.max(sapply(caminhos_mais_longos$vpath, length))]]
+  
+  cat("Caminho Mais Longo:", caminho_mais_longo, "\n")
   
   # Criar um subgrafo com o caminho mais longo
   g_caminho_mais_longo <- induced_subgraph(g, caminho_mais_longo)
   
   tkplot(g_caminho_mais_longo, main = "Grafo do Caminho Mais Longo")
 }
-
 
 
 # Função para calcular aproximações empíricas para o risco de prazo da obra
