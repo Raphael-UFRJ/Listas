@@ -1,11 +1,12 @@
 library(igraph)
 library(ggplot2)
 library(plotly)
+library(triangle)
 
 # Tabela de dados corrigida
 projeto <- data.frame(
   Atividade = 1:19,
-  Descrição = c("Remove refractory material", "Repair inner air casing", "Repair outer air casing",
+  Descricao = c("Remove refractory material", "Repair inner air casing", "Repair outer air casing",
                 "Repair under boiler", "Rebrick", "Chemically clean", "Remove air registers",
                 "Install plastic refractory", "Repair air register assemblies", "Install air registers",
                 "Rag for chemical cleaning", "Remove drum internals", "Repair drum internals",
@@ -119,9 +120,29 @@ q6 <- function(projeto) {
   cat("Data de Início Mais Cedo:", cpm_result$est, "\n")
 }
 
-# Função para criar um cronograma com 85% de probabilidade de ser cumprido
-q7 <- function(projeto) {
-  # Esta função requer a aplicação de análise de Monte Carlo ou métodos similares para simular o cronograma, o que excede a capacidade desta resposta simplificada.
+q7 <- function(projeto, simulacoes = 1000) {
+  # Inicializando Matriz e armazenando o resultado das simulações
+  resultados <- matrix(nrow = simulacoes, ncol = nrow(projeto))
+  
+  # Rodando as simulações
+  for (i in 1:simulacoes) {
+    # Para cada atividade, rodamos a duração com base no minimo e maximo e medio.
+    for (j in 1:nrow(projeto)) {
+      resultados[i, j] <- rtriangle(1, projeto$DMin[j], projeto$DMp[j], projeto$DMax[j])
+    }
+  }
+  
+  # Calcula o percentil 85 para cada atividade
+  duracao_percentil_85 <- apply(resultados, 2, function(x) quantile(x, probs = 0.85, na.rm = TRUE))
+  
+  # Atualiza a tabela do projeto com duração do percentil 85
+  projeto$duracaoPercentil85 <- duracao_percentil_85
+  
+  # Cria o histograma
+  ggplot(projeto, aes(x = duracaoPercentil85)) +
+    geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+    theme_minimal() +
+    labs(title = "Histogram with Monte Carlo Simulation", x = "85th Percentile Duration", y = "Frequency")
 }
 
 # Função para criar um diagrama de Gantt
