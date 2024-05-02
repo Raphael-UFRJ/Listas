@@ -47,6 +47,7 @@ q1 <- function(projeto) {
   
   # Plotar o grafo
   tkplot(g, main = "Grafo de Precedência do Projeto", vertex.color = "white")
+  return(g)
 }
 
 
@@ -77,8 +78,11 @@ q3 <- function(projeto) {
   
   g <- graph_from_edgelist(as.matrix(elos), directed = TRUE)
   
-  # Calcular o caminho mais longo
-  caminho_mais_longo <- get_diameter(g, directed = TRUE, weights = NA)
+  # Calcular todos os caminhos mais longos
+  caminhos_mais_longos <- get.all.shortest.paths(g, from = 1, to = nrow(projeto), mode = "out")
+  
+  # Encontrar o caminho mais longo
+  caminho_mais_longo <- caminhos_mais_longos$vpath[[which.max(sapply(caminhos_mais_longos$vpath, length))]]
   
   # Criar um subgrafo com o caminho mais longo
   g_caminho_mais_longo <- induced_subgraph(g, caminho_mais_longo)
@@ -86,10 +90,13 @@ q3 <- function(projeto) {
   tkplot(g_caminho_mais_longo, main = "Grafo do Caminho Mais Longo")
 }
 
+
+
 # Função para calcular aproximações empíricas para o risco de prazo da obra
 q4 <- function(projeto) {
-  projeto$TE <- (projeto$DMin + 4*projeto$DMp + projeto$DMax) / 6
-  projeto$DesvioPadrao <- (projeto$DMax - projeto$DMin) / 6
+  cpm_result <- funcCpm(n = nrow(projeto), d = projeto$DMp, Suc = projeto$Atividade, Pre = projeto$Pred)
+  projeto$TE <- cpm_result$est
+  projeto$DesvioPadrao <- (cpm_result$lst - cpm_result$est) / 6
   projeto$Variancia <- projeto$DesvioPadrao^2
   
   cat("TE (Tempo Esperado):\n", projeto$TE, "\n")
@@ -99,12 +106,16 @@ q4 <- function(projeto) {
 
 # Função para estimar as probabilidades das atividades pertencerem ao caminho crítico
 q5 <- function(projeto) {
-  # Esta função requer uma análise mais detalhada do PERT/CPM que não pode ser implementada diretamente sem os dados de dependência completos e análise de caminho crítico.
+  cpm_result <- funcCpm(n = nrow(projeto), d = projeto$DMp, Suc = projeto$Atividade, Pre = projeto$Pred)
+  caminho_critico <- which(cpm_result$est == cpm_result$lst)
+  atividades_caminho_critico <- projeto$Atividade[caminho_critico]
+  cat("Atividades no Caminho Crítico:", atividades_caminho_critico, "\n")
 }
 
 # Função para a distribuição de probabilidade da data de início mais cedo
 q6 <- function(projeto) {
-  # Similarmente, esta função requer uma análise de rede de projeto para calcular as datas de início mais cedo, o que não pode ser feito diretamente aqui.
+  cpm_result <- funcCpm(n = nrow(projeto), d = projeto$DMp, Suc = projeto$Atividade, Pre = projeto$Pred)
+  cat("Data de Início Mais Cedo:", cpm_result$est, "\n")
 }
 
 # Função para criar um cronograma com 85% de probabilidade de ser cumprido
@@ -114,13 +125,16 @@ q7 <- function(projeto) {
 
 # Função para criar um diagrama de Gantt
 q8 <- function(projeto) {
-  projeto$TE <- (projeto$DMin + 4*projeto$DMp + projeto$DMax) / 6
+  cpm_result <- funcCpm(n = nrow(projeto), d = projeto$DMp, Suc = projeto$Atividade, Pre = projeto$Pred)
+  projeto$TE <- cpm_result$est
   ggplot(projeto, aes(x = Atividade, y = TE, fill = Descrição)) +
     geom_bar(stat = "identity") +
     theme_minimal() +
     labs(title = "Diagrama de Gantt", x = "Atividade", y = "Tempo Esperado (TE)") +
     coord_flip()
 }
+
+
 # Função para criar um diagrama de Gantt usando Plotly
 q8_plotly <- function(projeto) {
   projeto$TE <- (projeto$DMin + 4*projeto$DMp + projeto$DMax) / 6
@@ -137,11 +151,12 @@ q8_plotly <- function(projeto) {
 
 # Chamadas de função para testar
 q1(projeto)
+#g <- q1(projeto)
 q2(projeto)
-# q3(projeto) # Estadando resultado errado
+q3(projeto) # Estadando resultado errado
 q4(projeto)
-# q5(projeto) # Requer análise detalhada
-# q6(projeto) # Requer análise de rede
-# q7(projeto) # Requer simulação
+q5(projeto) # Requer análise detalhada
+q6(projeto) # Requer análise de rede
+q7(projeto) # Requer simulação
 q8(projeto)
 q8_plotly(projeto)
