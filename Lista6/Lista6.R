@@ -1,8 +1,7 @@
-# Instalar e carregar as bibliotecas necessárias
-install.packages("quantmod")
-install.packages("tseries")
-install.packages("PerformanceAnalytics")
-install.packages("MASS")
+# install.packages("quantmod")
+# install.packages("tseries")
+# install.packages("PerformanceAnalytics")
+# install.packages("MASS")
 
 library(quantmod) # Para importar dados financeiros históricos
 library(tseries) # Para realizar testes estatísticos
@@ -16,9 +15,53 @@ q1 <- function(simbolos) {
   return(precos)
 }
 
+
+# Função para identificar outliers usando o método IQR
+identificar_outliers <- function(data) {
+  outliers <- apply(data, 2, function(col) {
+    Q1 <- quantile(col, 0.25)
+    Q3 <- quantile(col, 0.75)
+    IQR <- Q3 - Q1
+    lower_bound <- Q1 - 1.5 * IQR
+    upper_bound <- Q3 + 1.5 * IQR
+    col < lower_bound | col > upper_bound
+  })
+  return(outliers)
+}
+
+# Função para tratar outliers (remover)
+tratar_outliers <- function(data, outliers) {
+  for (i in seq_len(ncol(data))) {
+    data[outliers[, i], i] <- NA
+  }
+  return(na.omit(data))
+}
+
+
 # Função para estimar os parâmetros do modelo CER
 q2 <- function(precos) {
   retornos <- na.omit(diff(log(precos)))
+  
+  # Identificar e tratar outliers
+  outliers <- identificar_outliers(retornos)
+  
+  # Exibir os outliers identificados
+  cat("Outliers identificados:\n")
+  for (i in seq_len(ncol(retornos))) {
+    outlier_indices <- which(outliers[, i])
+    if (length(outlier_indices) > 0) {
+      cat(colnames(retornos)[i], ":", outlier_indices, "\n")
+    }
+  }
+  
+  # Visualizar os outliers com boxplot
+  par(mfrow = c(2, 2))
+  for (i in seq_len(ncol(retornos))) {
+    boxplot(retornos[, i], main = colnames(retornos)[i], outline = TRUE)
+  }
+  
+  retornos <- tratar_outliers(retornos, outliers)
+  
   medias <- colMeans(retornos)
   matriz_cov <- cov(retornos)
   return(list(medias = medias, matriz_cov = matriz_cov))
@@ -27,6 +70,14 @@ q2 <- function(precos) {
 # Função para verificar a normalidade dos retornos
 q3 <- function(retornos) {
   testes_normalidade <- apply(retornos, 2, jarque.bera.test)
+  resultados <- sapply(testes_normalidade, function(teste) {
+    if (teste$p.value > 0.05) {
+      return("Distribuição normal")
+    } else {
+      return("Não é distribuição normal")
+    }
+  })
+  return(resultados)
   return(testes_normalidade)
 }
 
@@ -40,18 +91,18 @@ q4 <- function(retornos) {
 q5 <- function(medias, matriz_cov, retornos, num_simulacoes = 10000) {
   num_ativos <- ncol(retornos)
   num_periodos <- nrow(retornos)
-
+  
   set.seed(123)
   retornos_simulados <- mvrnorm(num_simulacoes * num_periodos,
-    mu = medias, Sigma = matriz_cov
+                                mu = medias, Sigma = matriz_cov
   )
   retornos_simulados <- matrix(retornos_simulados,
-    ncol = num_ativos, byrow = TRUE
+                               ncol = num_ativos, byrow = TRUE
   )
-
+  
   medias_simuladas <- colMeans(retornos_simulados)
   matriz_cov_simulada <- cov(retornos_simulados)
-
+  
   return(list(
     Medias_Historicas = medias,
     Medias_Simuladas = medias_simuladas,
@@ -65,24 +116,24 @@ q6 <- function(precos, medias, matriz_cov,
                data_projecao = "2024-12-31",
                num_simulacoes = 10000) {
   periodo_proj <- as.integer(difftime(as.Date(data_projecao),
-    Sys.Date(),
-    units = "days"
+                                      Sys.Date(),
+                                      units = "days"
   ))
   num_ativos <- ncol(precos)
   precos_atuais <- tail(precos, 1)
-
+  
   precos_simulados <- matrix(0, nrow = num_simulacoes, ncol = num_ativos)
-
+  
   for (i in 1:num_simulacoes) {
     retornos_futuros <- mvrnorm(periodo_proj,
-      mu = medias / 252, Sigma = matriz_cov / 252
+                                mu = medias / 252, Sigma = matriz_cov / 252
     )
     retornos_futuros_acumulados <- apply(retornos_futuros, 2, cumsum)
     precos_simulados[i, ] <- precos_atuais * exp(tail(retornos_futuros_acumulados, 1))
   }
-
+  
   precos_futuros_estimados <- colMeans(precos_simulados)
-
+  
   return(data.frame(
     Ativo = colnames(precos),
     Preco_Atual = as.numeric(precos_atuais),
